@@ -8,8 +8,8 @@ class Application2(Frame):
         self.pack()
 
         self.index = '399300.SZ'
-        self.s_strategy = '三因子'
-        self.q_strategy = '布林线'
+        self.s_strategy = 'Fama三因子'
+        self.q_strategy = '布林线策略'
 
         self.create_widget()
 
@@ -47,27 +47,30 @@ class Application2(Frame):
         self.Label_s_strategy.grid(row=2, column=0)
 
         self.s_Strategy_Listbox = Listbox(self, listvariable=StringVar(), height=1)
-        self.s_Strategy_Listbox.insert('1', '三因子')
+        self.s_Strategy_Listbox.insert('1', 'Fama三因子')
         self.s_Strategy_Listbox.grid(row=2, column=1)
         def s_strategy_on_select(event):
             selected_tuple = self.s_Strategy_Listbox.curselection()
             if selected_tuple:
                 self.s_strategy = self.s_Strategy_Listbox.get(selected_tuple[0])
-                print(self.s_strategy)
+                print(f'选中选股策略: {self.s_strategy}')
         self.s_Strategy_Listbox.bind('<<ListboxSelect>>', s_strategy_on_select)
 
         self.Label_q_strategy = Label(self, text='择时策略')
         self.Label_q_strategy.grid(row=2, column=2)
 
         self.q_Strategy_Listbox = Listbox(self, listvariable=StringVar(), height=1)
-        self.q_Strategy_Listbox.insert('1', '布林线')
+        self.q_Strategy_Listbox.insert('1', '布林线策略')
+        self.q_Strategy_Listbox.insert('2', '多策略')
+        self.q_Strategy_Listbox.insert('3', '动量策略')
+        self.q_Strategy_Listbox.insert('4', '趋势跟踪策略SMA')
         self.q_Strategy_Listbox.grid(row=2, column=3)
 
         def q_strategy_on_select(event):
             selected_tuple = self.q_Strategy_Listbox.curselection()
             if selected_tuple:
                 self.q_strategy = self.q_Strategy_Listbox.get(selected_tuple[0])
-                print(self.q_strategy)
+                print(f'选中择时策略:{self.q_strategy}')
 
         self.q_Strategy_Listbox.bind('<<ListboxSelect>>', q_strategy_on_select)
 

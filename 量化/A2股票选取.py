@@ -4,8 +4,8 @@ import statsmodels.api as sm
 import time
 import pymysql
 import pandas as pd
-import backtrader as bt
 from datetime import datetime
+from timed_decorator.simple_timed import timed
 db = pymysql.connect(host='localhost', user='root', password='123456', port=3306, db='stock_data')
 # 创建数据库的游标
 cursor = db.cursor()
@@ -26,11 +26,12 @@ class StockChoice:
 
     def s_strategy_choice(self):
         s_method_map = {
-            '三因子': self.three_factors,
+            'Fama三因子': self.three_factors,
         }
         if self.s_strategy in s_method_map:
             s_method_map[self.s_strategy]()
 
+    @timed(use_seconds=True, precision=3)
     def stock_filter(self):
         stock_basic = pro.index_weight(index_code=self.index, start_date=self.trade_date[0], end_date=self.trade_date[30]).iloc[:299]
         # i = 0
@@ -169,6 +170,7 @@ class StockChoice:
     # 2026.04.26: 目前没有计划
 
     # 计算多个日期的SMB和HML
+    @timed(use_seconds=True, precision=3)
     def calculate_factors_for_dates(self):
         results = []
         for date in self.trade_date:
@@ -179,6 +181,7 @@ class StockChoice:
         sml_hml = sml_hml.set_index('date')
         return sml_hml
 
+    @timed(use_seconds=True, precision=3)
     def three_factors(self):
         columns_to_add = []
         start_date = self.trade_date[0]
