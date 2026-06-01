@@ -13,11 +13,10 @@ ts.set_token('3f3c696116d8dbb7f9dbd53e598198e41c142216da03a9fc7ad56f89')
 pro = ts.pro_api()
 
 class StockChoice:
-    def __init__(self, index, trade_date, s_strategy, q_strategy, A1, Sa1):
+    def __init__(self, index, trade_date, s_strategy, A1, Sa1):
         self.index = index
         self.trade_date = trade_date
         self.s_strategy = s_strategy
-        self.q_strategy = q_strategy
         self.ts_list = self.stock_filter()
         self.top_stocks = []
         self.expected_return = []
@@ -47,8 +46,8 @@ class StockChoice:
                 continue
             df1.dropna()
             industry = df1['industry'].loc[0] # 剔除金融行业——银行、保险、证券
-            current_year = time.strftime('%Y', time.localtime())
-            list_date = int(current_year) - int(df1['list_date'].loc[0][:4]) # 计算上市时间
+            current_year = time.localtime().tm_year
+            list_date = current_year - int(df1['list_date'].loc[0][:4]) # 计算上市时间
             name = df1['name'].loc[0] # 剔除ST股票
             # 剔除财务数据异常的公司，如资产负债率大于等于1
             df2 = pro.query('fina_indicator', ts_code=ts_code, start_date=self.trade_date[0], end_date=self.trade_date[-1])
@@ -77,10 +76,11 @@ class StockChoice:
     # 三因子1: 使用本地数据
     def calculate_three_factor_1(self, one_date):
 
-        no_data_stock = []
+        valid_codes = []
         circ_mv = []
         pb = []
         pct_chg = []
+
         if not self.ts_list:
             print("股票列表为空，无法计算三因子")
 
@@ -106,18 +106,14 @@ class StockChoice:
         for code in self.ts_list:
             df_stock = df_batch[df_batch['ts_code'] == code]
             if df_stock.empty:
-                # print('no data in three factors: {}'.format(code))
-                no_data_stock.append(code)
                 continue
-
+            valid_codes.append(code)
             pct_chg.append(df_stock['pct_chg'].iloc[0])
             circ_mv.append(df_stock['circ_mv'].iloc[0])
             pb.append(df_stock['pb'].iloc[0])
 
-        if no_data_stock:
-            for i in no_data_stock:
-                self.ts_list.remove(i)
-        data = {'ts_code': self.ts_list, 'pct_chg': pct_chg, 'circ_mv': circ_mv, 'pb': pb}
+
+        data = {'ts_code': valid_codes, 'pct_chg': pct_chg, 'circ_mv': circ_mv, 'pb': pb}
         df = pd.DataFrame(data)
         #  清理数据
         df = df.replace([float('inf'), -float('inf')], np.nan).dropna()
@@ -190,6 +186,7 @@ class StockChoice:
         print(end_date)
         # 因子值计算
         smb_hml = self.calculate_factors_for_dates()
+        print(len(self.ts_list))
         for code in self.ts_list:
             sql = '''
                    SELECT trade_date, pct_chg 
@@ -207,13 +204,16 @@ class StockChoice:
 
             # 更高效的数据提取方式
             temp_frame = pd.DataFrame(all_d,columns=['trade_date', 'pct_chg'])
-            temp_frame = temp_frame.drop_duplicates(subset=['trade_date'])  # 去除重复日期
-            temp_frame.set_index('trade_date', inplace=True)
+            time_stamp = pd.to_datetime(temp_frame['trade_date'])
+            temp_frame = temp_frame[['pct_chg']]
+            temp_frame.index = time_stamp
             temp_frame.columns = [code]  # 使用股票代码作为列名
+            temp_frame.sort_index(inplace=True)
             columns_to_add.append(temp_frame)
         # 在循环结束后，一次性使用 pd.concat 合并所有列
         try:
             stock_return_data = pd.concat(columns_to_add, axis=1, verify_integrity=True)
+            # print(f'个股每日收益率:\n{stock_return_data}')
         except ValueError as e:
             print(f"合并数据时出错: {str(e)}")
             # 如果合并失败，尝试不验证完整性
@@ -244,7 +244,11 @@ class StockChoice:
         raw_data = cursor.fetchall()
 
         factors = pd.DataFrame(raw_data, columns=['trade_date', 'Rm_Rf', 'SMB', 'HML'])
-        factors.set_index('trade_date', inplace=True)
+        factors_timestamp = pd.to_datetime(factors['trade_date'])
+        factors = factors[['Rm_Rf', 'SMB', 'HML']]
+        factors.index = factors_timestamp
+        factors.columns = ['Rm_Rf', 'SMB', 'HML']
+        factors.sort_index(inplace=True)
 
         # 确保索引对齐
         common_index = stock_return_data.index.intersection(factors.index)
@@ -254,16 +258,16 @@ class StockChoice:
 
         for stock in stock_return_data.columns:
             stock_returns = stock_return_data[stock] - rate_free # 被解释变量：股票盈利
-            # print('stock', stock)
-            # print(stock_returns)
-            if stock_returns.isnull().any() or factors.isnull().any().any():
-                print(f"Skipping stock {stock} due to NaN values in returns.")
-                continue
+            if stock_returns.isnull().values.any():
+                # print(f"stock {stock} has NaN values in stock_returns >>> dropna.")
+                stock_returns = stock_returns.dropna()
 
-            X = sm.add_constant(factors)
+            X_factors = factors.loc[stock_returns.index]
+            X = sm.add_constant(X_factors)
             model = sm.OLS(stock_returns, X).fit()
             results[stock] = model.params
 
+        print(f'因子系数\n{len(results)}')
         # 预期收益率计算
         expected_returns = {
             stock: rate_free + params['Rm_Rf'] * (factors['Rm_Rf'].mean())
