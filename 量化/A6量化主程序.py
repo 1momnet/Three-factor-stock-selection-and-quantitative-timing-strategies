@@ -9,11 +9,7 @@ def main_procedure(start_date, end_date, index, s_strategy, q_strategy, trade_ba
     A1 = ConditionArrangement(start_date=start_date, end_date=end_date, index=index, s_strategy=s_strategy,
                               q_strategy=q_strategy, Sa1=Sa1)
 
-    S1 = StockChoice(index=A1.index, trade_date=A1.trade_date, s_strategy=A1.s_strategy, q_strategy=A1.q_strategy,
-                     A1=A1, Sa1=Sa1)
-    ts_list = S1.ts_list
-    A1.into_daily_basic(ts_list=ts_list)
-    S1.s_strategy_choice()
+    S1 = StockChoice(index=A1.index, trade_date=A1.trade_date, last_days=A1.last_days, s_strategy=A1.s_strategy, A1=A1, Sa1=Sa1)
 
     # 在险价值部分
     var_instance = Var(S1.top_stocks)

@@ -48,6 +48,7 @@ class Application2(Frame):
 
         self.s_Strategy_Listbox = Listbox(self, listvariable=StringVar(), height=1)
         self.s_Strategy_Listbox.insert('1', 'Fama三因子')
+        self.s_Strategy_Listbox.insert('2', 'Fama五因子')
         self.s_Strategy_Listbox.grid(row=2, column=1)
         def s_strategy_on_select(event):
             selected_tuple = self.s_Strategy_Listbox.curselection()
