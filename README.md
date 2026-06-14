@@ -3,7 +3,7 @@
 程序主要是基于沪深300指数成分股进行的三因子选股和布林线回测。
 股票历史数据源：Tushare，在实际运行中，发现平台数据传输有点慢(几小时以上)，添加了数据本地化步骤，程序将数据存储进Mysql数据库。
 以下是程序会使用到的数据库中两个数据表的ddl：
-CREATE TABLE `daily_basic_new` (
+CREATE TABLE `daily_basic` (
   `trade_date` char(10) DEFAULT NULL,
   `ts_code` char(10) DEFAULT NULL,
   `circ_mv` float DEFAULT NULL,
@@ -20,6 +20,26 @@ CREATE TABLE `factors_value` (
   PRIMARY KEY (`trade_date`)
 ) 
 
+CREATE TABLE `daily_basic_five_factors` (
+  `trade_date` char(10) DEFAULT NULL,
+  `ts_code` char(10) DEFAULT NULL,
+  `circ_mv` float DEFAULT NULL,
+  `pb` float DEFAULT NULL,
+  `pct_chg` float DEFAULT NULL,
+  `roe` float DEFAULT NULL,
+  `total_assets_change_rate` float DEFAULT NULL,
+  UNIQUE KEY `date_ts` (`trade_date`,`ts_code`)
+)
+
+CREATE TABLE `factors_value_five_factors` (
+  `trade_date` char(10) NOT NULL,
+  `Rm_Rf` float DEFAULT NULL,
+  `SMB` float DEFAULT NULL,
+  `HML` float DEFAULT NULL,
+  `RMW` float DEFAULT NULL,
+  `CMA` float DEFAULT NULL,
+  PRIMARY KEY (`trade_date`)
+)
 程序需要下载多个第三方库，如backtrader,tushare,pymysql等
 
 截止到20260106为止，上传的程序是一个初步完成的作品，有些瑕疵需要完善。
